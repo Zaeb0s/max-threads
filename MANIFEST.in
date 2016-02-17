@@ -1,0 +1,2 @@
+include maxthreads/version
+include README.rst
