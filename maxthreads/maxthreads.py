@@ -10,8 +10,7 @@ class MaxThreads:
     def start_thread(self, target, args=(), kwargs={}):
         self.sema.acquire()
         threading.Thread(target=self._target_modifier,
-                         args=(target, ) + args,
-                         kwargs=kwargs).start()
+                         args=(target, args, kwargs)).start()
 
     def _target_modifier(self, target, args=(), kwargs={}):
         try:
@@ -20,14 +19,14 @@ class MaxThreads:
             self.sema.release()
 
 
-
 if __name__ == '__main__':
     from time import sleep
     from random import random
+
     def w():
         print(threading.active_count())
         sleep(random()*2)
 
-    x = MaxThreads(10)
+    x = MaxThreads(1)
     for i in range(200):
         x.start_thread(w)
