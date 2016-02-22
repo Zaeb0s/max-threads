@@ -54,7 +54,7 @@ Active threads:  4
 ## Variables of the MaxThreads.start_thread function
 
 Variable | Description | Default
---|--|--
+---------|-------------|--------
 target | The target function | No default value
 args | The arguments to be used when calling target | ()
 kwargs | The keyword arguments to be used when calling target | {}
