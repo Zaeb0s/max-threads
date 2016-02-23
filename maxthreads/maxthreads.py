@@ -14,12 +14,14 @@ class MaxThreads:
     def start_thread(self, target, args=(), kwargs={}):
         if self._limit:
             self._sema.acquire()
-            threading.Thread(target=self._modified_target,
-                             args=(self._sema, target, args, kwargs)).start()
+            thread = threading.Thread(target=self._modified_target,
+                                      args=(self._sema, target, args, kwargs))
         else:
-            threading.Thread(target=target,
-                             args=args,
-                             kwargs=kwargs).start()
+            thread = threading.Thread(target=target,
+                                      args=args,
+                                      kwargs=kwargs)
+        thread.start()
+        return thread
 
     @staticmethod
     def _modified_target(lock, target, args, kwargs):
