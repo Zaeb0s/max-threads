@@ -1,7 +1,6 @@
 #!/bin/env python3
 import threading
 from queue import Queue, Empty
-from loopfunction import Loop
 
 
 class MaxThreads:
@@ -27,7 +26,6 @@ class MaxThreads:
 
     def _loop(self):
         serve = True
-        print('THREAD STARTED')
         try:
             while serve:
                 try:
@@ -45,6 +43,19 @@ class MaxThreads:
             raise
         finally:
             self._threads_active -= 1
+
+    def threads_active(self):
+        return self._threads_active
+
+    def threads_waiting(self):
+        return self._threads_active
+
+    def empty_queue(self):
+        try:
+            while True:
+                self._queue.get()
+        except Empty:
+            pass
 
 
 # class ThreadStarter:
