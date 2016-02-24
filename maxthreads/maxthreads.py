@@ -5,31 +5,46 @@ from loopfunction import Loop
 
 
 class MaxThreads:
-    def __init__(self, max_threads=-1):
-        self._sema = None
-        self._limit = False
-        if max_threads > -1:
-            self._sema = threading.BoundedSemaphore(max_threads)
+    def __init__(self, max_threads=-1, thread_timeout=2):
+        self._queue = Queue()
+        self._thread_timeout = thread_timeout
+
+        self._threads_active = 0
+        self._threads_waiting = 0
+
+        self._max_threads = max_threads
+
+        if max_threads > 0:
             self._limit = True
+        else:
+            self._limit = False
 
     def start_thread(self, target, args=(), kwargs={}):
-        if self._limit:
-            self._sema.acquire()
-            thread = threading.Thread(target=self._modified_target,
-                                      args=(self._sema, target, args, kwargs))
-        else:
-            thread = threading.Thread(target=target,
-                                      args=args,
-                                      kwargs=kwargs)
-        thread.start()
-        return thread
+        self._queue.put((target, args, kwargs))
+        if (self._threads_active < self._max_threads or not self._limit) and self._threads_waiting == 0:
+            self._threads_active += 1
+            threading.Thread(target=self._loop).start()
 
-    @staticmethod
-    def _modified_target(lock, target, args, kwargs):
-            try:
-                target(*args, **kwargs)
-            finally:
-                lock.release()
+    def _loop(self):
+        serve = True
+        print('THREAD STARTED')
+        try:
+            while serve:
+                try:
+                    self._threads_waiting += 1
+                    target, args, kwargs = self._queue.get(timeout=self._thread_timeout)
+                    self._threads_waiting -= 1
+                except Empty:
+                    self._threads_waiting -= 1
+                    serve = False
+                else:
+                    target(*args, **kwargs)
+        except:
+            self._threads_active += 1
+            threading.Thread(target=self._loop).start()
+            raise
+        finally:
+            self._threads_active -= 1
 
 
 class ThreadStarter:

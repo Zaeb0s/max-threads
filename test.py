@@ -1,20 +1,3 @@
-# #!/bin/env python3
-#
-# import maxthreads
-#
-# from time import sleep
-# from random import random
-# import threading
-#
-# def w():
-#     print(threading.active_count())
-#
-#     sleep(random()*2)
-#
-# x = maxthreads.MaxThreads(10)
-# for i in range(200):
-#     x.start_thread(target=w)
-#
 #!/bin/env python3
 import maxthreads
 
@@ -24,14 +7,33 @@ import maxthreads
 from time import sleep
 from threading import active_count
 from random import random
+
+
 def fun():
-    print('Active threads: ', active_count())
+    # print('Active threads: ', active_count())
+    # print('In queue: ', thread_limiter._queue._qsize())
+    counter.i += 1
     sleep(random()*2)
 
 
 # The following initiates a MaxThreads object with the limit set to 10
-thread_limiter = maxthreads.MaxThreads(3)
-
+thread_limiter = maxthreads.MaxThreads(10)
+class counter:
+    i = 0
 # The following starts 200 threads each running the fun function.
-for i in range(10):
+for i in range(100):
     thread_limiter.start_thread(target=fun)
+
+# from queue import Queue
+# import threading
+# x = Queue()
+#
+# def p():
+#     return x.get()
+#
+# threading.Thread(target=p).start()
+#
+# x.put('hello')
+# for i in range(20):
+#     y = 1
+# print(x.empty())
