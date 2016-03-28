@@ -58,4 +58,11 @@ Variable | Description | Default
 target | The target function | No default value
 args | The arguments to be used when calling target | ()
 kwargs | The keyword arguments to be used when calling target | {}
+priority | Sets priority where the highest prio is the lowest number | 0
+
+## Priority
+In order to be able to use the priority variable in MaxThreads.start_thread you must set prio_queue=True when initiating the MaxThreads object. The example above would then contruct the MaxThreads object like:
+```python
+thread_limiter = maxthreads.MaxThreads(3, prio_queue=True)
+```
 

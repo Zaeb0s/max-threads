@@ -11,3 +11,6 @@ V.0.3.0
 
 V.0.4.0
   - Removed ThreadStarter Class because the new way start_thread is written makes this class obsolete (it no longer blocks while waiting for a thread to become available).
+
+V.0.5.0
+  - Added the ability to prioritize tasks started by start_thread
