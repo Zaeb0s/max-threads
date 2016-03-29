@@ -14,3 +14,9 @@ V.0.4.0
 
 V.0.5.0
   - Added the ability to prioritize tasks started by start_thread
+
+V.0.5.3
+  - Changed how the stop function works also added a start function that can be called after stop to restart
+
+
+

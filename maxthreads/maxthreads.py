@@ -1,9 +1,10 @@
 #!/bin/env python3
 import threading
-from queue import Queue, Empty, PriorityQueue
+from queue import Queue, Empty, PriorityQueue, deque
 from time import time
 """
 2016-03-28: Adding priority queues
+2016-03-29: Changed how MaxThreads.stop works 
 """
 
 class Counter:
@@ -17,6 +18,9 @@ class Counter:
         self.i = -1
 
 unique_id = Counter()
+
+def DoNothing():
+    pass
 
 class SetPrio:
     def __init__(self, target, args=(), kwargs={}, priority=0):
@@ -44,8 +48,6 @@ class SetPrio:
         self.target(*self.args, **self.kwargs)
 
 
-
-
 class MaxThreads:
     def __init__(self, max_threads, thread_timeout=-1, prio_queue=False):
         # if type(max_threads) != int or max_threads < 1:
@@ -56,12 +58,16 @@ class MaxThreads:
         else:
             self._queue = Queue()
 
-        if thread_timeout >= 0:
-            self._thread_timeout = thread_timeout
-            self._close_thread_on_empty = True
+        if thread_timeout < 0:
+            self._thread_timeout = None
         else:
-            self._thread_timeout = 2
-            self._close_thread_on_empty = False
+            self._thread_timeout = thread_timeout
+        # if thread_timeout >= 0:
+            # self._thread_timeout = thread_timeout
+            # self._close_thread_on_empty = True
+        # else:
+            # self._thread_timeout = 2
+            # self._close_thread_on_empty = False
 
         self._threads_active = 0
         self._threads_waiting = 0
@@ -82,6 +88,8 @@ class MaxThreads:
         return thread
 
     def start_thread(self, target, args=(), kwargs={}, priority=0):
+        if self._stop:
+            raise RuntimeError("Can't start new thread, the MaxThreads is in closing/closed state")
 
         PrioFunction = SetPrio(target=target,
                                args=args,
@@ -96,12 +104,13 @@ class MaxThreads:
     def _loop(self):
         serve = True
         try:
-            while serve:
-                if self._queue.empty():
+            while serve and not self._stop:
+                if self._queue.qsize() == 0:
                     # Because the queue is empty it is safe to reset the
                     # Second prio number (unique id)
                     # Doing this so the unique_id won't get too big
                     unique_id.reset()
+
                 try:
                     self._threads_waiting += 1
                     target = self._queue.get(timeout=self._thread_timeout)
@@ -109,9 +118,8 @@ class MaxThreads:
 
                 except Empty:
                     self._threads_waiting -= 1
-                    unique_id.reset()
-                    if self._close_thread_on_empty or self._stop:
-                        serve = False
+                    serve = False
+
                 else:
                     # The args and kwargs are automatically added to the target call
                     # These are set when the target is put into the queue in the start_thread function
@@ -121,7 +129,6 @@ class MaxThreads:
             # Thread is about to crash start new _loop thread and replace current thread in _threads
             # list with the new thread
 
-            # self._threads.remove(threading.current_thread())
             index = self._threads.index(threading.current_thread())
             self._threads[index] = self._start_loop_thread()
             raise
@@ -142,16 +149,44 @@ class MaxThreads:
         except Empty:
             pass
 
-    def stop(self):
+    def stop(self, block=True):
         self._stop = True
-        for thread in self._threads:
-            thread.join()
+
+        # Next triggering all active threads
+        # With the DoNothing function
+        # Because self._stop is True each thread will process at most one of the DoNothing functions
+        # Hence it is ensured that all .get calls are triggered
+        for _ in range(self.threads_active()):
+            self._queue.put(SetPrio(target=DoNothing))
+
+        if block:
+            for thread in self._threads:
+                thread.join()
+
+    def start(self):
+        if not self._stop:
+            raise RuntimeError("Can't start unstopped MaxThreads object, no need to call this during startup. "
+                               "Only needed when starting a stopped MaxThreads object")
+        self._stop = False
+        queue = self._queue
+
+        self._queue = type(self._queue)()
+
+        while queue.qsize() != 0:
+            SetPrio_function = queue.get(block=False)
+            self.start_thread(target=SetPrio_function.target,
+                              args=SetPrio_function.args,
+                              kwargs=SetPrio_function.kwargs,
+                              priority=SetPrio_function.priority)
+
+
+
 
 if __name__ == '__main__':
     from random import randint
     from time import sleep
 
-    m = MaxThreads(10, prio_queue=True, thread_timeout=-1)
+    m = MaxThreads(10, prio_queue=True, thread_timeout=-5)
     def p(order, prio):
         print('Queue order: ', order, 'Prio: ', prio)
         # print(threading.current_thread())
