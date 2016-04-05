@@ -1,15 +1,15 @@
 #!/bin/env python3
 import threading
-from queue import Queue, Empty, PriorityQueue, deque
-from time import time
+from queue import Queue, Empty, PriorityQueue
 """
 2016-03-28: Adding priority queues
-2016-03-29: Changed how MaxThreads.stop works 
+2016-03-29: Changed how MaxThreads.stop works
+2016-04-04: Added a join function and removed unused modules
+2016-04-05: The priority variable in SetPrio can now be a tuple
 """
 
 class Counter:
     i = -1
-
     def __call__(self):
         self.i += 1
         return self.i
@@ -25,7 +25,10 @@ def DoNothing():
 class SetPrio:
     def __init__(self, target, args=(), kwargs={}, priority=0):
         self.target = target
-        self.priority = (priority, unique_id())
+        if type(priority) == tuple:
+            self.priority = priority + (unique_id(), )
+        else:
+            self.priority = (priority, unique_id())
         self.args = args
         self.kwargs = kwargs
 
@@ -160,8 +163,11 @@ class MaxThreads:
             self._queue.put(SetPrio(target=DoNothing))
 
         if block:
-            for thread in self._threads:
-                thread.join()
+            self.join()
+
+    def join(self):
+        for thread in self._threads:
+            thread.join()
 
     def start(self):
         if not self._stop:
