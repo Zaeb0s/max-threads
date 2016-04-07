@@ -38,12 +38,12 @@ setup(
     version=version,
     include_package_data=True,
     license='MIT',
-    description='Python module for queuing threads',
+    description='Python module for running tasks within a limited amount of threads',
     long_description=readme(),
     author='Christoffer Zakrisson',
     author_email='christoffer_zakrisson@hotmail.com',
-    url='https://github.com/Zaeb0s/max-threads', # use the URL to the github repo
-    keywords=['max', 'threads', 'thread'], # arbitrary keywords
+    url='https://github.com/Zaeb0s/max-threads',
+    keywords=['max', 'threads', 'thread'],
     classifiers=['Development Status :: 3 - Alpha',
                  'Programming Language :: Python :: 3.5',
                  'Operating System :: POSIX :: Linux',

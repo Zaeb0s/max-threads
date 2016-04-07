@@ -6,6 +6,7 @@ from queue import Queue, Empty, PriorityQueue
 2016-03-29: Changed how MaxThreads.stop works
 2016-04-04: Added a join function and removed unused modules
 2016-04-05: The priority variable in SetPrio can now be a tuple
+2016-04-07: Changed name of start_thread to the more accurate add_task (the old name can still be used)
 """
 
 class Counter:
@@ -53,8 +54,6 @@ class SetPrio:
 
 class MaxThreads:
     def __init__(self, max_threads, thread_timeout=-1, prio_queue=False):
-        # if type(max_threads) != int or max_threads < 1:
-        #     raise ValueError('Maximum threads needs to be an integer larger than zero')
 
         if prio_queue:
             self._queue = PriorityQueue()
@@ -65,12 +64,6 @@ class MaxThreads:
             self._thread_timeout = None
         else:
             self._thread_timeout = thread_timeout
-        # if thread_timeout >= 0:
-            # self._thread_timeout = thread_timeout
-            # self._close_thread_on_empty = True
-        # else:
-            # self._thread_timeout = 2
-            # self._close_thread_on_empty = False
 
         self._threads_active = 0
         self._threads_waiting = 0
@@ -90,9 +83,9 @@ class MaxThreads:
         thread.start()
         return thread
 
-    def start_thread(self, target, args=(), kwargs={}, priority=0):
+    def add_task(self, target, args=(), kwargs={}, priority=0):
         if self._stop:
-            raise RuntimeError("Can't start new thread, the MaxThreads is in closing/closed state")
+            raise RuntimeError("Can't add new task, the MaxThreads object is in closing/closed state")
 
         PrioFunction = SetPrio(target=target,
                                args=args,
@@ -103,6 +96,11 @@ class MaxThreads:
             # self._threads_active += 1
             # threading.Thread(target=self._loop).start()
             self._threads.append(self._start_loop_thread())
+
+    def start_thread(self, target, args=(), kwargs={}, priority=0):
+        """To make sure applications work with the old name
+        """
+        return self.add_task(target, args, kwargs, priority)
 
     def _loop(self):
         serve = True
@@ -186,24 +184,20 @@ class MaxThreads:
                               priority=SetPrio_function.priority)
 
 
-
-
 if __name__ == '__main__':
     from random import randint
     from time import sleep
 
-    m = MaxThreads(10, prio_queue=True, thread_timeout=-5)
+    m = MaxThreads(2, prio_queue=True, thread_timeout=-5)
     def p(order, prio):
         print('Queue order: ', order, 'Prio: ', prio)
         # print(threading.current_thread())
         sleep(0.1)
 
-
-
-
     for i in range(200):
-        rand = randint(0,2)
-        m.start_thread(target=p, priority=rand, args=(i, rand))
+        rand1 = randint(0, 2)
+        rand2 = randint(0, 10)
+        m.add_task(target=p, priority=(rand1, rand2), args=(i, (rand1, rand2)))
 
 
 

@@ -18,5 +18,10 @@ V.0.5.0
 V.0.5.3
   - Changed how the stop function works also added a start function that can be called after stop to restart
 
+V.0.5.8
+  - The priority variable can now be a tuple
+
+V.0.5.11
+  - Changed name of start_thread to the more accurate add_task (the old name can still be used)
 
 
