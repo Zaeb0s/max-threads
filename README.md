@@ -31,6 +31,7 @@ V.0.5.8
 
 V.0.5.11
   - Changed name of start_thread to the more accurate add_task (the old name can still be used)
+  
 ## How to use
 
 ```python
