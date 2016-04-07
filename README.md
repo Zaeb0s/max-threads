@@ -53,7 +53,7 @@ thread_limiter = maxthreads.MaxThreads(3)
 
 # The following starts 10 threads each running the fun function.
 for i in range(10):
-    thread_limiter.add_tast(target=fun)
+    thread_limiter.add_task(target=fun)
 ```
 
 As can be seen by the output the maximum number of threads will be 4 (The mainthread and the 3 allowed by MaxThreads
@@ -73,7 +73,7 @@ Active threads:  4
 ...
 ```
 
-## Variables of the MaxThreads.add_tast function
+## Variables of the MaxThreads.add_task function
 
 Variable | Description | Default
 ---------|-------------|--------
@@ -83,7 +83,7 @@ kwargs | The keyword arguments to be used when calling target | {}
 priority | Sets priority where the highest prio is the lowest number | 0
 
 ## Priority
-In order to be able to use the priority variable in MaxThreads.add_tast you must set prio_queue=True when initiating the MaxThreads object. The example above would then contruct the MaxThreads object like:
+In order to be able to use the priority variable in MaxThreads.add_task you must set prio_queue=True when initiating the MaxThreads object. The example above would then contruct the MaxThreads object like:
 ```python
 thread_limiter = maxthreads.MaxThreads(3, prio_queue=True)
 ```
