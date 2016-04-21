@@ -32,6 +32,12 @@ V.0.5.8
 V.0.5.11
   - Changed name of start_thread to the more accurate add_task (the old name can still be used)
   
+V.1.0.0
+  - Fixed bug in the stop function where it wouldn't work if the priority variable in previously added tasks still in the queue was anything else than an integer.
+  - Fixed bug in the empty_queue where it would empty the queue then block indefinitely.
+  - Removed start function because tasks are now deleted in the stop function.
+  - Added get_task_queue_count function
+  
 ## How to use
 
 ```python
