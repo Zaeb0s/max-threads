@@ -1,16 +1,26 @@
-#!/bin/env python3
-import threading
-from queue import Queue, Empty, PriorityQueue
 """
 2016-03-28: Adding priority queues
 2016-03-29: Changed how MaxThreads.stop works
 2016-04-04: Added a join function and removed unused modules
 2016-04-05: The priority variable in SetPrio can now be a tuple
 2016-04-07: Changed name of start_thread to the more accurate add_task (the old name can still be used)
+2016-04-21:
+- Fixed bug in the stop function where it wouldn't work if the priority variable in previously
+added tasks still in the queue was anything else than an integer.
+- Fixed bug in the empty_queue where it would empty the queue then block indefinitely.
+- Removed start function because tasks are now deleted in the stop function.
+- Added get_task_queue_count function
 """
 
+# !/bin/env python3
+import threading
+from queue import Queue, Empty, PriorityQueue
+
+
 class Counter:
-    i = -1
+    def __init__(self):
+        self.i = -1
+
     def __call__(self):
         self.i += 1
         return self.i
@@ -18,20 +28,24 @@ class Counter:
     def reset(self):
         self.i = -1
 
+
 unique_id = Counter()
+
 
 def DoNothing():
     pass
 
+
 class SetPrio:
-    def __init__(self, target, args=(), kwargs={}, priority=0):
+    def __init__(self, target, args=(), kwargs=None, priority=None):
         self.target = target
-        if type(priority) == tuple:
-            self.priority = priority + (unique_id(), )
-        else:
-            self.priority = (priority, unique_id())
+        self.priority = (priority or 0, unique_id())
+        # if type(priority) == tuple:
+        #     self.priority = priority + (unique_id(), )
+        # else:
+        #     self.priority = (priority, unique_id())
         self.args = args
-        self.kwargs = kwargs
+        self.kwargs = kwargs or {}
 
     def __gt__(self, other):
         return self.priority > other.priority
@@ -40,7 +54,7 @@ class SetPrio:
         return self.priority >= other.priority
 
     def __lt__(self, other):
-        return  self.priority < other.priority
+        return self.priority < other.priority
 
     def __le__(self, other):
         return self.priority <= other.priority
@@ -54,6 +68,11 @@ class SetPrio:
 
 class MaxThreads:
     def __init__(self, max_threads, thread_timeout=-1, prio_queue=False):
+        """
+        :param max_threads: Max number of running threads
+        :param thread_timeout: Time (in seconds) each thread will wait for a new task before closing (<0 = stay alive)
+        :param prio_queue: (bool) whether or not to be able to prioritize tasks
+        """
 
         if prio_queue:
             self._queue = PriorityQueue()
@@ -83,21 +102,31 @@ class MaxThreads:
         thread.start()
         return thread
 
-    def add_task(self, target, args=(), kwargs={}, priority=0):
+    def add_task(self, target, args=(), kwargs=None, priority=None):
+        """
+        :param target: A callable object to be invoked
+        :param args: Arguments sent to the callable object upon invocation
+        :param kwargs: Keyword arguments sent to the callable object upon invocation
+        :param priority: Determines where to put the callable object in the list of tasks, Can be any type of object that is comparable using comparison operators (lower = higher priority)
+        :raise RuntimeError: If trying to add new task after closing object
+        """
+
         if self._stop:
             raise RuntimeError("Can't add new task, the MaxThreads object is in closing/closed state")
 
-        PrioFunction = SetPrio(target=target,
-                               args=args,
-                               kwargs=kwargs,
-                               priority=priority)
-        self._queue.put(PrioFunction)
+        self._queue.put(
+            SetPrio(target=target,
+                    args=args,
+                    kwargs=kwargs or {},
+                    priority=priority or 0)
+        )
+
         if (self.threads_active() < self._max_threads or not self._limit) and self._threads_waiting == 0:
             # self._threads_active += 1
             # threading.Thread(target=self._loop).start()
             self._threads.append(self._start_loop_thread())
 
-    def start_thread(self, target, args=(), kwargs={}, priority=0):
+    def start_thread(self, target, args=(), kwargs=None, priority=0):
         """To make sure applications work with the old name
         """
         return self.add_task(target, args, kwargs, priority)
@@ -115,6 +144,10 @@ class MaxThreads:
                 try:
                     self._threads_waiting += 1
                     target = self._queue.get(timeout=self._thread_timeout)
+                    # print(target)
+                    # if target == DoNothing:
+                    #     print('Did nothing!')
+
                     self._threads_waiting -= 1
 
                 except Empty:
@@ -138,22 +171,41 @@ class MaxThreads:
             self._threads.remove(threading.current_thread())
 
     def threads_active(self):
+        """
+        :return: Number of threads currently running within current object
+        """
         return len(self._threads)
 
     def threads_waiting(self):
+        """
+        :return: Number of threads waiting for a new task
+        """
         return self._threads_waiting
 
     def empty_queue(self):
+        """
+        Empties the task queue
+        :return: None
+        """
         try:
             while True:
-                self._queue.get()
+                self._queue.get(block=False)
         except Empty:
             pass
 
     def stop(self, block=True):
+        """
+        Stops all active threads and rejects new tasks to be added
+
+        :param block: (bool) True: Block until all threads are closed
+        :return: None
+        """
         self._stop = True
 
-        # Next triggering all active threads
+        # Removing tasks in queue
+        self.empty_queue()
+
+        # All active threads
         # With the DoNothing function
         # Because self._stop is True each thread will process at most one of the DoNothing functions
         # Hence it is ensured that all .get calls are triggered
@@ -161,48 +213,24 @@ class MaxThreads:
             self._queue.put(SetPrio(target=DoNothing))
 
         if block:
+            # Blocking until all threads are closed
             self.join()
 
+            # Removing any leftover DoNothing functions (Can only be reliably done when all threads are closed)
+            self.empty_queue()
+
     def join(self):
+        """
+        Block until all active threads are closed
+
+        :return: None
+        """
         for thread in self._threads:
             thread.join()
 
-    def start(self):
-        if not self._stop:
-            raise RuntimeError("Can't start unstopped MaxThreads object, no need to call this during startup. "
-                               "Only needed when starting a stopped MaxThreads object")
-        self._stop = False
-        queue = self._queue
-
-        self._queue = type(self._queue)()
-
-        while queue.qsize() != 0:
-            SetPrio_function = queue.get(block=False)
-            self.start_thread(target=SetPrio_function.target,
-                              args=SetPrio_function.args,
-                              kwargs=SetPrio_function.kwargs,
-                              priority=SetPrio_function.priority)
-
-
-if __name__ == '__main__':
-    from random import randint
-    from time import sleep
-
-    m = MaxThreads(2, prio_queue=True, thread_timeout=-5)
-    def p(order, prio):
-        print('Queue order: ', order, 'Prio: ', prio)
-        # print(threading.current_thread())
-        sleep(0.1)
-
-    for i in range(200):
-        rand1 = randint(0, 2)
-        rand2 = randint(0, 10)
-        m.add_task(target=p, priority=(rand1, rand2), args=(i, (rand1, rand2)))
-
-
-
-
-
-
-
+    def get_task_queue_count(self):
+        """
+        :return: Number of tasks waiting to be invoked
+        """
+        return self._queue.qsize()
 
