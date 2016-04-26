@@ -37,6 +37,7 @@ V.1.0.0
   - Fixed bug in the empty_queue where it would empty the queue then block indefinitely.
   - Removed start function because tasks are now deleted in the stop function.
   - Added get_task_queue_count function
+
 V.1.0.1
   - Fixed bug where a new thread could close before being added to the threads list
   - Fixed bug where add_task wouldn't start a new thread when it should
