@@ -40,6 +40,7 @@ V.1.0.0
 V.1.0.1
   - Fixed bug where a new thread could close before being added to the threads list
   - Fixed bug where add_task wouldn't start a new thread when it should
+  
 ## How to use
 
 ```python
