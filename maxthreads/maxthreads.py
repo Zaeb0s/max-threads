@@ -10,11 +10,16 @@ added tasks still in the queue was anything else than an integer.
 - Fixed bug in the empty_queue where it would empty the queue then block indefinitely.
 - Removed start function because tasks are now deleted in the stop function.
 - Added get_task_queue_count function
+2016-04-26:
+- Fixed bug where a new thread could close before being added to the threads list
+- Fixed bug where add_task wouldn't start a new thread when it should
 """
 
 # !/bin/env python3
 import threading
 from queue import Queue, Empty, PriorityQueue
+
+__all__ = ['MaxThreads']
 
 
 class Counter:
@@ -40,10 +45,6 @@ class SetPrio:
     def __init__(self, target, args=(), kwargs=None, priority=None):
         self.target = target
         self.priority = (priority or 0, unique_id())
-        # if type(priority) == tuple:
-        #     self.priority = priority + (unique_id(), )
-        # else:
-        #     self.priority = (priority, unique_id())
         self.args = args
         self.kwargs = kwargs or {}
 
@@ -84,7 +85,6 @@ class MaxThreads:
         else:
             self._thread_timeout = thread_timeout
 
-        self._threads_active = 0
         self._threads_waiting = 0
 
         self._max_threads = max_threads
@@ -99,6 +99,7 @@ class MaxThreads:
 
     def _start_loop_thread(self):
         thread = threading.Thread(target=self._loop)
+        self._threads.append(thread)
         thread.start()
         return thread
 
@@ -108,11 +109,22 @@ class MaxThreads:
         :param args: Arguments sent to the callable object upon invocation
         :param kwargs: Keyword arguments sent to the callable object upon invocation
         :param priority: Determines where to put the callable object in the list of tasks, Can be any type of object that is comparable using comparison operators (lower = higher priority)
+        :return: If a new thread was started returns the threading object otherwise returns None
         :raise RuntimeError: If trying to add new task after closing object
         """
 
         if self._stop:
             raise RuntimeError("Can't add new task, the MaxThreads object is in closing/closed state")
+
+        new_thread = None
+
+        if (self.threads_active() < self._max_threads or not self._limit) \
+            and (self._threads_waiting == 0 and self._queue.qsize() > 0):
+            # The number of active threads is less than maximum number of threads
+            # OR there is no limit on the maximum number of threads
+            # AND there are no threads in waiting state
+            # i.e. start a new thread
+            new_thread = self._start_loop_thread()
 
         self._queue.put(
             SetPrio(target=target,
@@ -121,10 +133,7 @@ class MaxThreads:
                     priority=priority or 0)
         )
 
-        if (self.threads_active() < self._max_threads or not self._limit) and self._threads_waiting == 0:
-            # self._threads_active += 1
-            # threading.Thread(target=self._loop).start()
-            self._threads.append(self._start_loop_thread())
+        return new_thread
 
     def start_thread(self, target, args=(), kwargs=None, priority=0):
         """To make sure applications work with the old name
@@ -144,10 +153,6 @@ class MaxThreads:
                 try:
                     self._threads_waiting += 1
                     target = self._queue.get(timeout=self._thread_timeout)
-                    # print(target)
-                    # if target == DoNothing:
-                    #     print('Did nothing!')
-
                     self._threads_waiting -= 1
 
                 except Empty:

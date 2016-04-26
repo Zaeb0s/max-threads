@@ -44,7 +44,7 @@ setup(
     author_email='christoffer_zakrisson@hotmail.com',
     url='https://github.com/Zaeb0s/max-threads',
     keywords=['max', 'threads', 'thread', 'threading', 'maxthreads', 'limiter', 'limit', 'task', 'tasks'],
-    classifiers=['Development Status :: 5 - Production/Stable,
+    classifiers=['Development Status :: 5 - Production/Stable',
                  'Programming Language :: Python :: 3.5',
                  'Operating System :: POSIX :: Linux',
                  'License :: OSI Approved :: MIT License'],
