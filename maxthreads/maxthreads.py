@@ -70,9 +70,10 @@ class SetPrio:
 class MaxThreads:
     def __init__(self, max_threads, thread_timeout=-1, prio_queue=False):
         """
-        :param max_threads: Max number of running threads
-        :param thread_timeout: Time (in seconds) each thread will wait for a new task before closing (<0 = stay alive)
-        :param prio_queue: (bool) whether or not to be able to prioritize tasks
+        Args
+            max_threads (int): Max number of running threads
+            thread_timeout (float, int): Time (in seconds) each thread will wait for a new task before closing (<0 = stay alive)
+            prio_queue (bool): whether or not to be able to prioritize tasks
         """
 
         if prio_queue:
@@ -105,12 +106,16 @@ class MaxThreads:
 
     def add_task(self, target, args=(), kwargs=None, priority=None):
         """
-        :param target: A callable object to be invoked
-        :param args: Arguments sent to the callable object upon invocation
-        :param kwargs: Keyword arguments sent to the callable object upon invocation
-        :param priority: Determines where to put the callable object in the list of tasks, Can be any type of object that is comparable using comparison operators (lower = higher priority)
-        :return: If a new thread was started returns the threading object otherwise returns None
-        :raise RuntimeError: If trying to add new task after closing object
+        Args:
+            target: A callable object to be invoked
+            args: Arguments sent to the callable object upon invocation
+            kwargs: Keyword arguments sent to the callable object upon invocation
+            priority: Determines where to put the callable object in the list of tasks, Can be any type of object that
+                is comparable using comparison operators (lower = higher priority)
+        Returns:
+            If a new thread was started returns the threading object otherwise returns None
+        Raises:
+            RuntimeError: If trying to add new task after closing object
         """
 
         if self._stop:
@@ -136,7 +141,7 @@ class MaxThreads:
         return new_thread
 
     def start_thread(self, target, args=(), kwargs=None, priority=0):
-        """To make sure applications work with the old name
+        """ To make sure applications work with the old name
         """
         return self.add_task(target, args, kwargs, priority)
 
@@ -177,20 +182,20 @@ class MaxThreads:
 
     def threads_active(self):
         """
-        :return: Number of threads currently running within current object
+        Returns:
+            Number of threads currently running within current object
         """
         return len(self._threads)
 
     def threads_waiting(self):
         """
-        :return: Number of threads waiting for a new task
+        Returns
+            Number of threads waiting for a new task
         """
         return self._threads_waiting
 
     def empty_queue(self):
-        """
-        Empties the task queue
-        :return: None
+        """ Empties the task queue
         """
         try:
             while True:
@@ -199,11 +204,9 @@ class MaxThreads:
             pass
 
     def stop(self, block=True):
-        """
-        Stops all active threads and rejects new tasks to be added
-
-        :param block: (bool) True: Block until all threads are closed
-        :return: None
+        """ Stops all active threads and rejects new tasks to be added
+        Args:
+            block (bool): If True, block until all threads are closed
         """
         self._stop = True
 
@@ -225,17 +228,15 @@ class MaxThreads:
             self.empty_queue()
 
     def join(self):
-        """
-        Block until all active threads are closed
-
-        :return: None
+        """ Block until all active threads are closed
         """
         for thread in self._threads:
             thread.join()
 
     def get_task_queue_count(self):
         """
-        :return: Number of tasks waiting to be invoked
+        Returns (int):
+            Number of tasks waiting to be invoked
         """
         return self._queue.qsize()
 

@@ -97,4 +97,3 @@ In order to be able to use the priority variable in MaxThreads.add_task you must
 ```python
 thread_limiter = maxthreads.MaxThreads(3, prio_queue=True)
 ```
-

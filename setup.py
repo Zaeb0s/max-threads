@@ -1,17 +1,19 @@
 #!/bin/env python3
-# from distutils.core import setup
-from setuptools import setup
-from maxthreads import __version__
 import sys
-
+from setuptools import setup, find_packages
 
 def readme():
-    with open('README.rst') as f:
+    with open('README.rst', 'r') as f:
         return f.read()
 
-print('Current version: ', __version__)
-version = __version__.split('.')
+pack_name = 'webbed'
 
+with open(pack_name + '/version.py', 'r') as file:
+    # getting __version__ variable
+    exec(file.read())
+
+print('Current version:', __version__)
+version = __version__.split('.')
 
 if sys.argv[-1] == 'minor':
     version[2] = str(int(version[2]) + 1)
@@ -26,30 +28,33 @@ elif sys.argv[-1] == 'huge':
     version[2] = '0'
     del sys.argv[-1]
 
-
-version = '.'.join(version)
-with open('maxthreads/version', 'w') as f:
-    f.write(version)
-
+__version__ = '.'.join(version)
+print('New version:', __version__)
+with open(pack_name + '/version.py', 'w') as f:
+    f.write('__version__ = "' + __version__ + '"')
 
 setup(
-    name='maxthreads',
-    packages=['maxthreads'],  # this must be the same as the name above
-    version=version,
+    name=pack_name,
+    packages=find_packages(),
+    version=__version__,
     include_package_data=True,
     license='MIT',
-    description='Python module for running tasks within a limited amount of threads',
+    description='Allows the execution of python code within any file',
     long_description=readme(),
     author='Christoffer Zakrisson',
     author_email='christoffer_zakrisson@hotmail.com',
-    url='https://github.com/Zaeb0s/max-threads',
-    keywords=['max', 'threads', 'thread', 'threading', 'maxthreads', 'limiter', 'limit', 'task', 'tasks'],
-    classifiers=['Development Status :: 5 - Production/Stable',
+    # url='https://github.com/Zaeb0s/ez-crypt',
+    keywords=['webbed', 'script', 'file'],
+    classifiers=['Development Status :: 4 - Beta',
                  'Programming Language :: Python :: 3.5',
                  'Operating System :: POSIX :: Linux',
+                    'Operating System :: POSIX :: Linux',
                  'License :: OSI Approved :: MIT License'],
+
     install_requires=[]
 )
 
 
-print('Installed version: ' + version)
+print('Installed version:', __version__)
+
+
